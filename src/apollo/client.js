@@ -107,6 +107,6 @@ export function createApolloClient(initialState = {}, link = undefined) {
 function createIsomorphLink() {
 	const { HttpLink } = require('apollo-link-http')
 	return new HttpLink({
-		uri: process.env.NETWORK_HTTP_URI,
+		uri: 'https://api.thegraph.com/subgraphs/name/graphprotocol/graph-network-mainnet',
 	})
 }

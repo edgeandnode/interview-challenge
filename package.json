@@ -4,7 +4,7 @@
   "description": "Public Pages for Edge & Node",
   "main": "index.js",
   "scripts": {
-    "dev": "source .env && next -p 4000",
+    "dev": "next -p 4000",
     "build": "rm -rf out .next && next build",
     "export": "next export"
   },
@@ -34,6 +34,7 @@
     "raw-loader": "^4.0.2",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
+    "react-table": "^7.6.3",
     "sitemap": "^6.3.5",
     "styled-jsx-plugin-sass": "^1.0.0",
     "theme-ui": "^0.6.0-alpha.4"
