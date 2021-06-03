@@ -1,12 +1,12 @@
 /** @jsxImportSource theme-ui */
 
-import { Box, jsx } from 'theme-ui'
+import { Box, Button, jsx } from 'theme-ui'
 import { useState, useEffect, Fragment } from 'react'
 import { useQuery } from '@apollo/react-hooks'
 import { withApollo } from '../apollo/client'
 import Layout from '../components/Layout'
 
-import { SearchIcon } from '../icons/Search.js'
+import { SearchIcon } from '../icons/search.js'
 import { EPOCHES_QUERY } from '../apollo/queries'
 
 const Index = () => {
