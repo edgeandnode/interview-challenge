@@ -1,7 +1,7 @@
 /** @jsxImportSource theme-ui */
 
 import { Box, Button, jsx } from 'theme-ui'
-import { useState, useEffect, Fragment } from 'react'
+import { useState, useMemo, Fragment } from 'react'
 import { useQuery } from '@apollo/react-hooks'
 import { withApollo } from '../apollo/client'
 import Layout from '../components/Layout'
@@ -20,51 +20,6 @@ const Index = () => {
           px: '2rem',
         }}
       >
-        <div
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          <h1
-            sx={{
-              m: 0,
-            }}
-          >
-            Epochs
-          </h1>
-          <div
-            sx={{
-              display: 'flex',
-              flexDirection: 'row',
-              alignItems: 'center',
-              height: '2rem',
-            }}
-          >
-            {/* TODO: Check if there is a better semantic element */}
-            <div
-              sx={{
-                height: '100%',
-                width: '1px',
-                bg: 'white',
-                mx: '1rem',
-              }}
-            />
-            <SearchIcon />
-            <input
-              sx={{
-                bg: 'transparent',
-                border: 'none',
-                color: 'white',
-                ':focus': {
-                  outline: 'none',
-                },
-              }}
-              type="text"
-              placeholder="Search"
-            />
-          </div>
-        </div>
         <Layout>
           <Table />
         </Layout>
@@ -73,13 +28,52 @@ const Index = () => {
   )
 }
 
+function SearchBar({ value, setValue }) {
+  return (
+    <div
+      sx={{
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
+        height: '2rem',
+      }}
+    >
+      {/* TODO: Check if there is a better semantic element */}
+      <div
+        sx={{
+          height: '100%',
+          width: '1px',
+          bg: 'white',
+          mx: '1rem',
+        }}
+      />
+      <SearchIcon />
+      <input
+        aria-label="filter epoches"
+        sx={{
+          bg: 'transparent',
+          border: 'none',
+          color: 'white',
+          ':focus': {
+            outline: 'none',
+          },
+        }}
+        type="text"
+        placeholder="Search"
+        value={value}
+        onChange={setValue}
+      />
+    </div>
+  )
+}
+
 function Table() {
   const [{ orderBy, orderDirection }, setOrder] = useState({
     orderBy: 'startBlock',
     orderDirection: 'asc',
   })
-  // TODO: convert this to part of the GraphQL query
-  const [limit, setLimit] = useState(3)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [limit, setLimit] = useState(3) // TODO: convert this to part of the GraphQL query
   const { loading, error, data, fetchMore } = useQuery(EPOCHES_QUERY, {
     variables: {
       orderBy,
@@ -103,11 +97,45 @@ function Table() {
   // TODO: make better error handling, unfortunately not in the design though
   if (error) return <p>There was an error!</p>
 
+  // this is not at all optimized, mostly because this likely needs to be done through GraphQL, and possibly with debouncing.
+  // even with doing it in line, there are certainly ways to improve this
+  const epochs = loading
+    ? []
+    : data.epoches.filter(({ id, startBlock, endBlock }) => {
+        return (
+          String(id).includes(searchTerm) ||
+          String(startBlock).includes(searchTerm) ||
+          String(endBlock).includes(searchTerm)
+        )
+      })
+
   return (
-    <div>
+    <>
+      <header
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+        }}
+      >
+        <h1
+          sx={{
+            m: 0,
+          }}
+        >
+          Epochs
+        </h1>
+        <SearchBar
+          value={searchTerm}
+          setValue={(e) => {
+            setSearchTerm(e.target.value)
+          }}
+        />
+      </header>
       <section
         sx={{
+          mt: '2rem',
           display: 'grid',
+          minWidth: '700px',
           gridTemplateColumns: 'repeat(5, 1fr)',
         }}
       >
@@ -147,39 +175,42 @@ function Table() {
           Total Rewards
         </TableHeaderButton>
 
-        {loading
-          ? null
-          : data.epoches
-              .slice(0, limit)
-              .map(({ id, startBlock, endBlock, queryFeeRebates, totalRewards }) => (
-                <Fragment key={id}>
-                  <TableCell>{id}</TableCell>
-                  <TableCell>#{startBlock}</TableCell>
-                  <TableCell>#{endBlock}</TableCell>
-                  <GRTCell>{formatNumber(queryFeeRebates)}</GRTCell>
-                  <GRTCell>{formatNumber(totalRewards)}</GRTCell>
-                </Fragment>
-              ))}
+        {epochs
+          .slice(0, limit)
+          .map(({ id, startBlock, endBlock, queryFeeRebates, totalRewards }) => (
+            <Fragment key={id}>
+              <TableCell selected={orderBy === 'id'}>{id}</TableCell>
+              <TableCell selected={orderBy === 'startBlock'}>#{startBlock}</TableCell>
+              <TableCell selected={orderBy === 'endBlock'}>#{endBlock}</TableCell>
+              <GRTCell selected={orderBy === 'queryFeeRebates'}>
+                {formatNumber(queryFeeRebates)}
+              </GRTCell>
+              <GRTCell selected={orderBy === 'totalRewards'}>
+                {formatNumber(totalRewards)}
+              </GRTCell>
+            </Fragment>
+          ))}
       </section>
-      {loading ? null : (
-        <>
-          <Count>
-            {limit} / {data.epoches.length}
-          </Count>
-          <div
-            sx={{
-              display: 'flex',
-              justifyItems: 'center',
-              mt: '2rem',
-            }}
+
+      <Count>
+        {Math.min(limit, epochs.length)} / {epochs.length}
+      </Count>
+      <div
+        sx={{
+          display: 'flex',
+          justifyItems: 'center',
+          mt: '2rem',
+        }}
+      >
+        {limit < epochs.length ? (
+          <LoadMoreButton
+            onClick={() => setLimit((prev) => Math.min(prev + 3, epochs.length))}
           >
-            <LoadMoreButton onClick={() => setLimit((prev) => prev + 3)}>
-              Load More
-            </LoadMoreButton>
-          </div>
-        </>
-      )}
-    </div>
+            Load More
+          </LoadMoreButton>
+        ) : null}
+      </div>
+    </>
   )
 }
 
@@ -234,11 +265,11 @@ function TableRow({ id, startBlock, endBlock, queryFeeRebates, totalRewards }) {
   )
 }
 
-function TableCell({ children }) {
+function TableCell({ selected, children }) {
   return (
     <span
       sx={{
-        color: 'white', // TODO: figure out how to use theme colors
+        color: selected ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0.6)', // TODO: figure out how to use theme colors
         border: 'none',
         fontFamily: 'body',
         textAlign: 'left',
@@ -252,13 +283,13 @@ function TableCell({ children }) {
   )
 }
 
-function GRTCell({ children }) {
+function GRTCell({ selected, children }) {
   return (
     <span
       sx={{
         display: 'flex',
         alignItems: 'center',
-        color: 'white', // TODO: figure out how to use theme colors
+        color: selected ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0.6)', // TODO: figure out how to use theme colors
         border: 'none',
         fontFamily: 'heading',
         textTransform: 'uppercase',
