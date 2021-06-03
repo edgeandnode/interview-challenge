@@ -66,7 +66,7 @@ const Index = () => {
           </div>
         </div>
         <Layout>
-          <Table />{' '}
+          <Table />
         </Layout>
       </Box>
     </Box>
@@ -78,6 +78,8 @@ function Table() {
     orderBy: 'startBlock',
     orderDirection: 'asc',
   })
+  // TODO: convert this to part of the GraphQL query
+  const [limit, setLimit] = useState(3)
   const { loading, error, data, fetchMore } = useQuery(EPOCHES_QUERY, {
     variables: {
       orderBy,
@@ -102,62 +104,82 @@ function Table() {
   if (error) return <p>There was an error!</p>
 
   return (
-    <section
-      sx={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(5, 1fr)',
-      }}
-    >
-      <TableHeaderButton
-        onClick={() => handleSetOrder('id')}
-        selected={orderBy === 'id'}
-        orderDirection={orderDirection}
+    <div>
+      <section
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(5, 1fr)',
+        }}
       >
-        Epoch
-      </TableHeaderButton>
-      <TableHeaderButton
-        onClick={() => handleSetOrder('startBlock')}
-        selected={orderBy === 'startBlock'}
-        orderDirection={orderDirection}
-      >
-        Start Block
-      </TableHeaderButton>
-      <TableHeaderButton
-        onClick={() => handleSetOrder('endBlock')}
-        selected={orderBy === 'endBlock'}
-        orderDirection={orderDirection}
-      >
-        End Block
-      </TableHeaderButton>
-      <TableHeaderButton
-        onClick={() => handleSetOrder('queryFeeRebates')}
-        selected={orderBy === 'queryFeeRebates'}
-        orderDirection={orderDirection}
-      >
-        Query Fees
-      </TableHeaderButton>
-      <TableHeaderButton
-        selected={orderBy === 'totalRewards'}
-        selected={orderBy === 'totalRewards'}
-        orderDirection={orderDirection}
-      >
-        Total Rewards
-      </TableHeaderButton>
+        <TableHeaderButton
+          onClick={() => handleSetOrder('id')}
+          selected={orderBy === 'id'}
+          orderDirection={orderDirection}
+        >
+          Epoch
+        </TableHeaderButton>
+        <TableHeaderButton
+          onClick={() => handleSetOrder('startBlock')}
+          selected={orderBy === 'startBlock'}
+          orderDirection={orderDirection}
+        >
+          Start Block
+        </TableHeaderButton>
+        <TableHeaderButton
+          onClick={() => handleSetOrder('endBlock')}
+          selected={orderBy === 'endBlock'}
+          orderDirection={orderDirection}
+        >
+          End Block
+        </TableHeaderButton>
+        <TableHeaderButton
+          onClick={() => handleSetOrder('queryFeeRebates')}
+          selected={orderBy === 'queryFeeRebates'}
+          orderDirection={orderDirection}
+        >
+          Query Fees
+        </TableHeaderButton>
+        <TableHeaderButton
+          selected={orderBy === 'totalRewards'}
+          selected={orderBy === 'totalRewards'}
+          orderDirection={orderDirection}
+        >
+          Total Rewards
+        </TableHeaderButton>
 
-      {loading
-        ? null
-        : data.epoches
-            .slice(0, 10) // TODO: Remove
-            .map(({ id, startBlock, endBlock, queryFeeRebates, totalRewards }) => (
-              <Fragment key={id}>
-                <TableCell>{id}</TableCell>
-                <TableCell>#{startBlock}</TableCell>
-                <TableCell>#{endBlock}</TableCell>
-                <GRTCell>{formatNumber(queryFeeRebates)}</GRTCell>
-                <GRTCell>{formatNumber(totalRewards)}</GRTCell>
-              </Fragment>
-            ))}
-    </section>
+        {loading
+          ? null
+          : data.epoches
+              .slice(0, limit)
+              .map(({ id, startBlock, endBlock, queryFeeRebates, totalRewards }) => (
+                <Fragment key={id}>
+                  <TableCell>{id}</TableCell>
+                  <TableCell>#{startBlock}</TableCell>
+                  <TableCell>#{endBlock}</TableCell>
+                  <GRTCell>{formatNumber(queryFeeRebates)}</GRTCell>
+                  <GRTCell>{formatNumber(totalRewards)}</GRTCell>
+                </Fragment>
+              ))}
+      </section>
+      {loading ? null : (
+        <>
+          <Count>
+            {limit} / {data.epoches.length}
+          </Count>
+          <div
+            sx={{
+              display: 'flex',
+              justifyItems: 'center',
+              mt: '2rem',
+            }}
+          >
+            <LoadMoreButton onClick={() => setLimit((prev) => prev + 3)}>
+              Load More
+            </LoadMoreButton>
+          </div>
+        </>
+      )}
+    </div>
   )
 }
 
@@ -218,8 +240,7 @@ function TableCell({ children }) {
       sx={{
         color: 'white', // TODO: figure out how to use theme colors
         border: 'none',
-        fontFamily: 'heading',
-        textTransform: 'uppercase',
+        fontFamily: 'body',
         textAlign: 'left',
         pl: '1rem',
         py: '1.5rem',
@@ -256,6 +277,47 @@ function GRTCell({ children }) {
       >
         GRT
       </span>
+    </span>
+  )
+}
+
+function LoadMoreButton({ onClick, children }) {
+  return (
+    <button
+      sx={{
+        mx: 'auto',
+        bg: 'transparent',
+        color: 'white', // TODO: figure out how to use theme colors
+        border: 'none',
+        fontFamily: 'heading',
+        textAlign: 'left',
+        p: '1rem',
+        border: '1px solid rgba(100,93,153,1)',
+        borderRadius: '8px',
+      }}
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  )
+}
+
+function Count({ children }) {
+  return (
+    <span
+      sx={{
+        fontSize: '0.75rem',
+        display: 'flex',
+        alignItems: 'center',
+        color: 'GrayText',
+        border: 'none',
+        fontFamily: 'heading',
+        textAlign: 'left',
+        pl: '1rem',
+        py: '1rem',
+      }}
+    >
+      {children}
     </span>
   )
 }
