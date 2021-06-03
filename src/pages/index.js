@@ -7,6 +7,8 @@ import { withApollo } from '../apollo/client'
 import Layout from '../components/Layout'
 
 import { SearchIcon } from '../icons/search.js'
+import { DirectionUp } from '../icons/direction-up'
+import { DirectionDown } from '../icons/direction-down'
 import { EPOCHES_QUERY } from '../apollo/queries'
 
 const Index = () => {
@@ -72,16 +74,32 @@ const Index = () => {
 }
 
 function Table() {
-  const { loading, error, data } = useQuery(EPOCHES_QUERY)
+  const [{ orderBy, orderDirection }, setOrder] = useState({
+    orderBy: 'startBlock',
+    orderDirection: 'asc',
+  })
+  const { loading, error, data, fetchMore } = useQuery(EPOCHES_QUERY, {
+    variables: {
+      orderBy,
+      orderDirection,
+    },
+  })
 
-  if (loading) return <p>Loading...</p>
-  if (error) return <p>There was an error!</p>
-
-  console.log(data)
-  const epoches = data?.epoches
-  if (epoches) {
-    console.log(epoches[3].queryFeeRebates)
+  function handleSetOrder(orderBy) {
+    setOrder((prev) => {
+      // clicking the same order by flips the direction,
+      // no order by is always asc first
+      if (prev.orderBy === orderBy) {
+        const orderDirection = prev.orderDirection === 'asc' ? 'desc' : 'asc'
+        return { orderBy, orderDirection }
+      } else {
+        return { orderBy, orderDirection: 'asc' }
+      }
+    })
   }
+
+  // TODO: make better error handling, unfortunately not in the design though
+  if (error) return <p>There was an error!</p>
 
   return (
     <section
@@ -90,32 +108,65 @@ function Table() {
         gridTemplateColumns: 'repeat(5, 1fr)',
       }}
     >
-      <TableHeaderButton>Epoch</TableHeaderButton>
-      <TableHeaderButton>Start Block</TableHeaderButton>
-      <TableHeaderButton>End Block</TableHeaderButton>
-      <TableHeaderButton>Query Fees</TableHeaderButton>
-      <TableHeaderButton>Total Rewards</TableHeaderButton>
+      <TableHeaderButton
+        onClick={() => handleSetOrder('id')}
+        selected={orderBy === 'id'}
+        orderDirection={orderDirection}
+      >
+        Epoch
+      </TableHeaderButton>
+      <TableHeaderButton
+        onClick={() => handleSetOrder('startBlock')}
+        selected={orderBy === 'startBlock'}
+        orderDirection={orderDirection}
+      >
+        Start Block
+      </TableHeaderButton>
+      <TableHeaderButton
+        onClick={() => handleSetOrder('endBlock')}
+        selected={orderBy === 'endBlock'}
+        orderDirection={orderDirection}
+      >
+        End Block
+      </TableHeaderButton>
+      <TableHeaderButton
+        onClick={() => handleSetOrder('queryFeeRebates')}
+        selected={orderBy === 'queryFeeRebates'}
+        orderDirection={orderDirection}
+      >
+        Query Fees
+      </TableHeaderButton>
+      <TableHeaderButton
+        selected={orderBy === 'totalRewards'}
+        selected={orderBy === 'totalRewards'}
+        orderDirection={orderDirection}
+      >
+        Total Rewards
+      </TableHeaderButton>
 
-      {epoches
-        .slice(0, 10)
-        .map(({ id, startBlock, endBlock, queryFeeRebates, totalRewards }) => (
-          <Fragment key={id}>
-            <TableCell>{id}</TableCell>
-            <TableCell>#{startBlock}</TableCell>
-            <TableCell>#{endBlock}</TableCell>
-            <GRTCell>{formatNumber(queryFeeRebates)}</GRTCell>
-            <GRTCell>{formatNumber(totalRewards)}</GRTCell>
-          </Fragment>
-        ))}
+      {loading
+        ? null
+        : data.epoches
+            .slice(0, 10) // TODO: Remove
+            .map(({ id, startBlock, endBlock, queryFeeRebates, totalRewards }) => (
+              <Fragment key={id}>
+                <TableCell>{id}</TableCell>
+                <TableCell>#{startBlock}</TableCell>
+                <TableCell>#{endBlock}</TableCell>
+                <GRTCell>{formatNumber(queryFeeRebates)}</GRTCell>
+                <GRTCell>{formatNumber(totalRewards)}</GRTCell>
+              </Fragment>
+            ))}
     </section>
   )
 }
 
-function TableHeaderButton({ children }) {
+function TableHeaderButton({ onClick, selected, orderDirection, children }) {
   let focusState = 'hover'
 
   return (
     <button
+      onClick={onClick}
       sx={{
         bg: 'transparent',
         color: 'white', // TODO: figure out how to use theme colors
@@ -125,7 +176,7 @@ function TableHeaderButton({ children }) {
         textAlign: 'left',
         pl: '1rem',
         py: '1rem',
-        '--border-opacity': '0.2',
+        '--border-opacity': selected ? '1' : '0.2',
         ':hover': {
           '--border-opacity': '0.5',
         },
@@ -136,7 +187,20 @@ function TableHeaderButton({ children }) {
       }}
     >
       {children}
+      {selected ? <Direction orderDirection={orderDirection} /> : null}
     </button>
+  )
+}
+
+function Direction({ orderDirection }) {
+  return (
+    <span
+      sx={{
+        ml: '0.5rem',
+      }}
+    >
+      {orderDirection === 'asc' ? <DirectionUp /> : <DirectionDown />}
+    </span>
   )
 }
 
