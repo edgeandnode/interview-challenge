@@ -22,7 +22,7 @@ const space = [
   '128px',
   '256px',
 ]
-const fontWeights = { body: 400, caption: 500, heading: 600, }
+const fontWeights = { body: 400, caption: 500, heading: 600 }
 const borderRadius = { base: space[1] }
 const opacity = { base: 0.72 }
 
@@ -55,12 +55,10 @@ const globalTheme = {
     h6: {
       fontWeight: 'heading',
     },
-    p: {
-    },
-    a: {
-    },
-    text: {}
-  }
+    p: {},
+    a: {},
+    text: {},
+  },
 }
 
 export default globalTheme
